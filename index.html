@@ -11,31 +11,108 @@
     }
     * { box-sizing: border-box; }
     body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--fg); line-height:1.6; }
-    main { max-width: 640px; margin: 0 auto; padding: 4rem 1.25rem; }
+    main { max-width: 640px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
     h1 { font-size: clamp(2rem, 6vw, 3rem); margin: 0 0 .5rem; }
     h1 span { color: var(--accent); }
     p.lead { font-size: 1.15rem; opacity: .8; }
+    #stage { position: relative; width: 100%; height: min(70vh, 480px); touch-action: pan-y; }
+    #stage canvas { display:block; width:100%; height:100%; cursor: grab; }
+    #stage canvas:active { cursor: grabbing; }
+    #status { position:absolute; inset:0; display:grid; place-items:center; font-size:.95rem; opacity:.7; pointer-events:none; }
     .card { background: var(--card); border-radius: 12px; padding: 1.25rem; margin-top: 2rem; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
     button { background: var(--accent); color:#fff; border:0; border-radius: 8px; padding: .7rem 1.2rem; font-size: 1rem; cursor: pointer; }
     #msg { margin-top: 1rem; font-weight: 600; min-height: 1.6em; }
-    footer { margin-top: 3rem; font-size: .9rem; opacity: .6; }
+    footer { margin-top: 3rem; font-size: .85rem; opacity: .6; }
   </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
 </head>
 <body>
+  <div id="stage" aria-label="Casque 3D qui tourne, faites-le pivoter à la souris ou au doigt">
+    <div id="status">Chargement du modèle 3D…</div>
+  </div>
+
   <main>
     <h1>Bonjour <span>GitHub Pages</span> 👋</h1>
-    <p class="lead">Cette page d'exemple est hébergée gratuitement depuis un dépôt GitHub.</p>
+    <p class="lead">Cette page d'exemple est hébergée gratuitement depuis un dépôt GitHub. Le casque ci-dessus tourne en continu, attrapez-le pour le faire pivoter.</p>
     <div class="card">
       <p>Un petit test d'interactivité :</p>
       <button id="btn">Dis-moi l'heure</button>
       <div id="msg"></div>
     </div>
-    <footer>Modifiez <code>index.html</code>, poussez sur <code>main</code>, et le site se met à jour.</footer>
+    <footer>
+      Modèle « Battle Damaged Sci-fi Helmet » par theblueturtle_ (licence CC BY-NC 4.0), via les exemples glTF de Khronos / Three.js.
+    </footer>
   </main>
+
   <script>
     document.getElementById('btn').addEventListener('click', () => {
       document.getElementById('msg').textContent =
         'Il est ' + new Date().toLocaleTimeString('fr-FR');
+    });
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    const stage = document.getElementById('stage');
+    const status = document.getElementById('status');
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    stage.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+    camera.position.set(0, 0.2, 4.2);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.enablePan = false;
+    controls.enableZoom = false;
+    controls.autoRotate = true;      // rotation continue
+    controls.autoRotateSpeed = 2.0;
+
+    function resize() {
+      const w = stage.clientWidth, h = stage.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    new GLTFLoader().load(
+      'models/DamagedHelmet.glb',
+      (gltf) => {
+        const model = gltf.scene;
+        // Recentre le modèle
+        const box = new THREE.Box3().setFromObject(model);
+        model.position.sub(box.getCenter(new THREE.Vector3()));
+        scene.add(model);
+        status.remove();
+      },
+      undefined,
+      () => { status.textContent = "Impossible de charger le modèle 3D."; }
+    );
+
+    renderer.setAnimationLoop(() => {
+      controls.update();
+      renderer.render(scene, camera);
     });
   </script>
 </body>
