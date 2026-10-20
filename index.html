@@ -3,26 +3,119 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ma page GitHub Pages</title>
+  <title>HELMET-01 · Unité de reconnaissance</title>
+  <meta name="description" content="Page d'exemple GitHub Pages avec un casque sci-fi en 3D (Three.js).">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
-    :root { --bg:#fafaf7; --fg:#1d1d1b; --accent:#d9480f; --card:#fff; }
-    @media (prefers-color-scheme: dark) {
-      :root { --bg:#161614; --fg:#f2f2ee; --accent:#ff8a4c; --card:#222220; }
+    :root {
+      --bg: #04090b;
+      --panel: rgba(6, 22, 26, .72);
+      --cyan: #2de2d0;
+      --cyan-dim: rgba(45, 226, 208, .35);
+      --amber: #e8b14a;
+      --fg: #cdeeea;
+      --muted: #6f9a96;
+      --mono: 'Share Tech Mono', ui-monospace, monospace;
+      --display: 'Orbitron', system-ui, sans-serif;
     }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--fg); line-height:1.6; }
-    main { max-width: 640px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-    h1 { font-size: clamp(2rem, 6vw, 3rem); margin: 0 0 .5rem; }
-    h1 span { color: var(--accent); }
-    p.lead { font-size: 1.15rem; opacity: .8; }
-    #stage { position: relative; width: 100%; height: min(70vh, 480px); touch-action: pan-y; }
-    #stage canvas { display:block; width:100%; height:100%; cursor: grab; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; min-height: 100vh; color: var(--fg); font-family: var(--mono); line-height: 1.6;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 38%, rgba(45,226,208,.14), transparent 70%),
+        radial-gradient(ellipse 80% 60% at 50% 120%, rgba(232,177,74,.08), transparent 70%),
+        var(--bg);
+      background-attachment: fixed;
+      overflow-x: hidden;
+    }
+    /* grille + scanlines */
+    body::before, body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+    body::before {
+      background-image:
+        linear-gradient(var(--cyan-dim) 1px, transparent 1px),
+        linear-gradient(90deg, var(--cyan-dim) 1px, transparent 1px);
+      background-size: 56px 56px; opacity: .07;
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 20%, transparent 80%);
+    }
+    body::after {
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px);
+      mix-blend-mode: multiply; opacity: .5;
+    }
+
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+      padding: .9rem clamp(1rem, 4vw, 2.5rem); font-size: .8rem; letter-spacing: .12em; text-transform: uppercase;
+      background: linear-gradient(var(--bg), transparent);
+    }
+    .topbar b { font-family: var(--display); color: var(--cyan); letter-spacing: .25em; }
+    .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--cyan); box-shadow:0 0 10px var(--cyan); margin-right:.5rem; animation: blink 1.6s infinite; }
+    @keyframes blink { 50% { opacity: .25; } }
+
+    /* scène 3D */
+    #stage { position: relative; width: 100%; height: 78vh; min-height: 460px; touch-action: pan-y; z-index: 1; }
+    #stage canvas { display: block; width: 100%; height: 100%; cursor: grab; }
     #stage canvas:active { cursor: grabbing; }
-    #status { position:absolute; inset:0; display:grid; place-items:center; font-size:.95rem; opacity:.7; pointer-events:none; }
-    .card { background: var(--card); border-radius: 12px; padding: 1.25rem; margin-top: 2rem; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
-    button { background: var(--accent); color:#fff; border:0; border-radius: 8px; padding: .7rem 1.2rem; font-size: 1rem; cursor: pointer; }
-    #msg { margin-top: 1rem; font-weight: 600; min-height: 1.6em; }
-    footer { margin-top: 3rem; font-size: .85rem; opacity: .6; }
+    #status { position: absolute; inset: 0; display: grid; place-items: center; color: var(--cyan); letter-spacing: .2em; text-transform: uppercase; font-size: .85rem; pointer-events: none; }
+    #status::after { content: "_"; animation: blink 1s infinite; }
+
+    /* réticule autour du modèle */
+    .reticle { position: absolute; inset: 0; z-index: 2; pointer-events: none; display: grid; place-items: center; }
+    .reticle i { position: absolute; width: min(70vw, 440px); aspect-ratio: 1; border-radius: 50%; border: 1px dashed var(--cyan-dim); animation: spin 40s linear infinite; }
+    .reticle i + i { width: min(86vw, 560px); border-style: solid; border-color: rgba(45,226,208,.12); animation-direction: reverse; animation-duration: 70s; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .corner { position: absolute; width: 28px; height: 28px; border: 2px solid var(--cyan); opacity: .7; }
+    .corner.tl { top: 64px; left: clamp(1rem, 4vw, 2.5rem); border-right: 0; border-bottom: 0; }
+    .corner.tr { top: 64px; right: clamp(1rem, 4vw, 2.5rem); border-left: 0; border-bottom: 0; }
+    .corner.bl { bottom: 20px; left: clamp(1rem, 4vw, 2.5rem); border-right: 0; border-top: 0; }
+    .corner.br { bottom: 20px; right: clamp(1rem, 4vw, 2.5rem); border-left: 0; border-top: 0; }
+
+    .hero-text { position: absolute; left: 0; right: 0; bottom: 36px; text-align: center; z-index: 3; pointer-events: none; padding: 0 1rem; }
+    .hero-text small { color: var(--amber); letter-spacing: .35em; text-transform: uppercase; font-size: .75rem; }
+    h1 {
+      font-family: var(--display); font-weight: 800; margin: .3rem 0 0;
+      font-size: clamp(1.9rem, 6.5vw, 4rem); letter-spacing: .08em; text-transform: uppercase; line-height: 1.1;
+      color: #eafffb; text-shadow: 0 0 24px rgba(45,226,208,.55), 0 0 2px #fff;
+    }
+    h1 span { color: var(--cyan); }
+    .hint { color: var(--muted); font-size: .78rem; letter-spacing: .15em; margin-top: .6rem; text-transform: uppercase; }
+
+    main { position: relative; z-index: 2; max-width: 880px; margin: 0 auto; padding: 2.5rem clamp(1rem, 4vw, 2rem) 4rem; }
+    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+    .panel {
+      position: relative; padding: 1.25rem 1.3rem; background: var(--panel); backdrop-filter: blur(6px);
+      border: 1px solid var(--cyan-dim);
+      clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+    }
+    .panel h2 { font-family: var(--display); font-weight: 500; font-size: .85rem; letter-spacing: .25em; color: var(--cyan); margin: 0 0 .7rem; text-transform: uppercase; }
+    .panel p { margin: 0; color: var(--fg); font-size: .95rem; }
+    .panel.wide { grid-column: 1 / -1; }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .stats div { border-left: 2px solid var(--amber); padding-left: .7rem; }
+    .stats b { display: block; font-family: var(--display); font-size: 1.4rem; color: #fff; }
+    .stats span { color: var(--muted); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; }
+
+    button {
+      font: inherit; font-family: var(--display); font-size: .8rem; letter-spacing: .2em; text-transform: uppercase;
+      color: #031211; background: var(--cyan); border: 0; padding: .8rem 1.4rem; cursor: pointer;
+      clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+      box-shadow: 0 0 18px rgba(45,226,208,.5); transition: transform .15s, filter .15s;
+    }
+    button:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    button:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+    #msg { margin-top: 1rem; min-height: 1.6em; color: var(--amber); letter-spacing: .1em; }
+
+    footer { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--cyan-dim); color: var(--muted); font-size: .75rem; letter-spacing: .06em; }
+    footer a { color: var(--cyan); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reticle i, .dot, #status::after { animation: none; }
+      html { scroll-behavior: auto; }
+    }
   </style>
   <script type="importmap">
   {
@@ -34,27 +127,52 @@
   </script>
 </head>
 <body>
-  <div id="stage" aria-label="Casque 3D qui tourne, faites-le pivoter à la souris ou au doigt">
-    <div id="status">Chargement du modèle 3D…</div>
-  </div>
+  <header class="topbar">
+    <b>HELMET-01</b>
+    <span><span class="dot"></span>Système en ligne</span>
+  </header>
+
+  <section id="stage" aria-label="Casque sci-fi en 3D. Faites-le pivoter à la souris ou au doigt.">
+    <div class="reticle" aria-hidden="true"><i></i><i></i></div>
+    <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+    <div id="status">Initialisation du modèle</div>
+    <div class="hero-text">
+      <small>Unité de reconnaissance</small>
+      <h1>Bonjour <span>GitHub Pages</span></h1>
+      <div class="hint">Glissez pour orienter le casque</div>
+    </div>
+  </section>
 
   <main>
-    <h1>Bonjour <span>GitHub Pages</span> 👋</h1>
-    <p class="lead">Cette page d'exemple est hébergée gratuitement depuis un dépôt GitHub. Le casque ci-dessus tourne en continu, attrapez-le pour le faire pivoter.</p>
-    <div class="card">
-      <p>Un petit test d'interactivité :</p>
-      <button id="btn">Dis-moi l'heure</button>
-      <div id="msg"></div>
+    <div class="grid">
+      <section class="panel">
+        <h2>Mission</h2>
+        <p>Page d'exemple hébergée gratuitement depuis un dépôt GitHub, propulsée par Three.js.</p>
+      </section>
+      <section class="panel">
+        <h2>Mise à jour</h2>
+        <p>Modifiez <code>index.html</code>, poussez sur <code>main</code> : le site se redéploie tout seul.</p>
+      </section>
+      <section class="panel wide">
+        <h2>Test de communication</h2>
+        <button id="btn" type="button">Synchroniser l'horloge</button>
+        <div id="msg" role="status" aria-live="polite"></div>
+        <div class="stats">
+          <div><b>3D</b><span>Three.js r160</span></div>
+          <div><b>glTF</b><span>Modèle PBR</span></div>
+          <div><b>0 €</b><span>Hébergement</span></div>
+        </div>
+      </section>
     </div>
     <footer>
-      Modèle « Battle Damaged Sci-fi Helmet » par theblueturtle_ (licence CC BY-NC 4.0), via les exemples glTF de Khronos / Three.js.
+      Modèle « Battle Damaged Sci-fi Helmet » par theblueturtle_, licence CC BY-NC 4.0, via les exemples glTF de Khronos et Three.js.
     </footer>
   </main>
 
   <script>
     document.getElementById('btn').addEventListener('click', () => {
       document.getElementById('msg').textContent =
-        'Il est ' + new Date().toLocaleTimeString('fr-FR');
+        '> SYNC OK · ' + new Date().toLocaleTimeString('fr-FR');
     });
   </script>
 
@@ -70,47 +188,58 @@
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    stage.appendChild(renderer.domElement);
+    stage.insertBefore(renderer.domElement, stage.firstChild);
 
     const scene = new THREE.Scene();
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
-    camera.position.set(0, 0.2, 4.2);
+    // Éclairage teinté : contre-jour cyan + appoint ambre
+    const rim = new THREE.DirectionalLight(0x2de2d0, 3.2); rim.position.set(-3, 2, -3); scene.add(rim);
+    const warm = new THREE.DirectionalLight(0xe8b14a, 1.6); warm.position.set(3, -1, 2); scene.add(warm);
+
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 50);
+    camera.position.set(0, 0.15, 4.4);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.enablePan = false;
     controls.enableZoom = false;
-    controls.autoRotate = true;      // rotation continue
+    controls.autoRotate = true;
     controls.autoRotateSpeed = 2.0;
 
     function resize() {
       const w = stage.clientWidth, h = stage.clientHeight;
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
+      // recule sur les écrans étroits pour que le casque reste entier
+      camera.position.z = w / h < 0.8 ? 5.6 : 4.4;
       camera.updateProjectionMatrix();
     }
     window.addEventListener('resize', resize);
     resize();
 
+    let model, baseY = 0;
     new GLTFLoader().load(
       'models/DamagedHelmet.glb',
       (gltf) => {
-        const model = gltf.scene;
-        // Recentre le modèle
+        model = gltf.scene;
         const box = new THREE.Box3().setFromObject(model);
         model.position.sub(box.getCenter(new THREE.Vector3()));
+        baseY = model.position.y + 0.3; // remonte le casque au-dessus du titre
         scene.add(model);
         status.remove();
       },
       undefined,
-      () => { status.textContent = "Impossible de charger le modèle 3D."; }
+      () => { status.textContent = "Échec du chargement du modèle"; }
     );
 
+    const clock = new THREE.Clock();
     renderer.setAnimationLoop(() => {
+      // léger flottement vertical
+      if (model) model.position.y = baseY + Math.sin(clock.getElapsedTime() * 1.2) * 0.04;
       controls.update();
       renderer.render(scene, camera);
     });
